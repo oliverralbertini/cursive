@@ -6,6 +6,7 @@ use cursive::Cursive;
 fn main() {
     let mut siv = cursive::default();
 
+    // Start with a nicer theme than default
     siv.set_theme(cursive::theme::Theme {
         shadow: true,
         borders: BorderStyle::Simple,
@@ -31,6 +32,7 @@ fn main() {
         Dialog::around(layout)
             .title("Theme example")
             .button("Change", |s| {
+                // Change _something_ when the button is pressed.
                 let mut theme = s.current_theme().clone();
 
                 theme.shadow = !theme.shadow;
