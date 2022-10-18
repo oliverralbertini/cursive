@@ -33,6 +33,7 @@ impl Button {
     impl_enabled!(self.enabled);
 
     /// Creates a new button with the given content and callback.
+    #[cursive_macros::callback_helpers]
     pub fn new<F, S>(label: S, cb: F) -> Self
     where
         F: 'static + Fn(&mut Cursive),
@@ -204,3 +205,19 @@ impl View for Button {
         self.invalidated
     }
 }
+
+crate::recipe!(Button, |config, context| {
+    use std::rc::Rc;
+
+    let label: String = context.resolve(&config["label"])?;
+    let callback: Rc<dyn Fn(&mut Cursive)> =
+        context.resolve_as_var(&config["callback"])?;
+
+    let mut button = crate::views::Button::new(label, move |s| (*callback)(s));
+
+    if let Some(enabled) = config.get("enabled") {
+        button.set_enabled(context.resolve(enabled)?);
+    }
+
+    Ok(button)
+});

@@ -33,7 +33,7 @@ Dialog:
         - padding: 1
         # Some wrappers don't take any parameter.
         - full_width
-        - fixed_height: 9
+        - fixed_height: 11
   buttons:
     - Info:
         # This uses a builtin callback variable.

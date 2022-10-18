@@ -225,6 +225,12 @@ impl FromConfig for String {
     }
 }
 
+impl FromConfig for bool {
+    fn from_config(config: &Config) -> Option<Self> {
+        config.as_bool()
+    }
+}
+
 impl FromConfig for u64 {
     fn from_config(config: &Config) -> Option<Self> {
         config.as_u64()
