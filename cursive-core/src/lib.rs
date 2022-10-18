@@ -50,6 +50,8 @@ pub mod reexports {
     pub use ansi_parser;
 }
 
+pub use cursive_macros::callback_helpers;
+
 #[macro_use]
 pub mod utils;
 #[macro_use]

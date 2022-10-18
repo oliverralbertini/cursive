@@ -3,13 +3,13 @@ authors = ["Alexandre Bury <alexandre.bury@gmail.com>"]
 categories = ["command-line-interface", "gui"]
 description = "A TUI (Text User Interface) library focused on ease-of-use."
 documentation = "https://docs.rs/cursive"
+edition = "2021"
 keywords = ["ncurses", "TUI", "UI"]
 license = "MIT"
 name = "cursive"
 readme = "Readme.md"
 repository = "https://github.com/gyscos/cursive"
 version = "0.20.0"
-edition = "2021"
 
 [package.metadata.docs.rs]
 all-features = true
