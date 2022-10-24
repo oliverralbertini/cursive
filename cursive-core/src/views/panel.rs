@@ -169,9 +169,7 @@ crate::recipe!(with panel, |config, context| {
         _ => String::new(),
     };
 
-    let title_position = config.get("title_position")
-        .map(|config| context.resolve(config))
-        .transpose()?;
+    let title_position = context.resolve(&config["title_position"])?;
 
     Ok(move |view| {
         let mut panel = crate::views::Panel::new(view).title(title);

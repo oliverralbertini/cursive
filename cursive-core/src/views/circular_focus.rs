@@ -234,24 +234,11 @@ crate::recipe!(with circular_focus, |config, context| {
             (tab, up_down, left_right)
         }
         Config::Object(config) => {
-            let tab = config
-                .get("tab")
-                .map(|tab| context.resolve(tab))
-                .transpose()?
-                .unwrap_or(false);
-            let mut left_right = config
-                .get("left_right")
-                .map(|tab| context.resolve(tab))
-                .transpose()?
-                .unwrap_or(false);
-            let mut up_down = config
-                .get("up_down")
-                .map(|tab| context.resolve(tab))
-                .transpose()?
-                .unwrap_or(false);
+            let tab = context.resolve(&config["tab"])?;
+            let mut left_right = context.resolve_or(&config["left_right"], false)?;
+            let mut up_down = context.resolve_or(&config["up_down"], false)?;
 
-            if let Some(arrows) = config.get("arrows") {
-                let arrows = context.resolve(arrows)?;
+            if let Some(arrows) = context.resolve(&config["arrows"])? {
                 left_right = arrows;
                 up_down = arrows;
             }

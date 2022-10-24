@@ -65,7 +65,7 @@ impl<V: View> ViewWrapper for EnableableView<V> {
 }
 
 crate::recipe!(with enableable, |config, context| {
-    let enabled = config.get("enabled").map(|enabled| context.resolve(enabled)).transpose()?.unwrap_or(true);
+    let enabled = context.resolve_or(&config["enabled"], true)?;
 
     Ok(move |view| EnableableView::new(view).with_enabled(enabled))
 });

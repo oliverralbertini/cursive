@@ -83,8 +83,8 @@ impl<T: View> ViewWrapper for FocusTracker<T> {
 }
 
 crate::recipe!(with focus_tracker, |config, context| {
-    let on_focus = config.get("on_focus").map(|on_focus| context.resolve(on_focus)).transpose()?;
-    let on_focus_lost = config.get("on_focus_lost").map(|on_focus| context.resolve(on_focus)).transpose()?;
+    let on_focus = context.resolve(&config["on_focus"])?;
+    let on_focus_lost = context.resolve(&config["on_focus_lost"])?;
 
     Ok(move |view| {
         let mut tracker = FocusTracker::new(view);

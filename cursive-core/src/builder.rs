@@ -876,7 +876,6 @@ impl Context {
     // FromConfig: Resolve as config only
 
     // We're fine with only one of them, or both.
-
     /// Resolve a value
     pub fn resolve<T: FromConfig + 'static>(
         &self,
@@ -896,6 +895,15 @@ impl Context {
             var_failure,
             config_failure,
         })
+    }
+
+    /// Resolve a value, using the given default if the key is missing.
+    pub fn resolve_or<T: FromConfig + 'static>(
+        &self,
+        config: &Config,
+        if_missing: T,
+    ) -> Result<T, Error> {
+        Ok(self.resolve::<Option<T>>(config)?.unwrap_or(if_missing))
     }
 
     fn store_entry(&mut self, name: impl Into<String>, entry: VarEntry) {
