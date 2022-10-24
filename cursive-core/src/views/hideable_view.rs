@@ -126,3 +126,12 @@ impl<V: View> ViewWrapper for HideableView<V> {
         self.invalidated || (self.visible && self.view.needs_relayout())
     }
 }
+
+crate::recipe!(with hideable, |config, context| {
+    let visible = config.get("visible")
+        .map(|visible| context.resolve(visible))
+        .transpose()?
+        .unwrap_or(true);
+
+    Ok(move |view| HideableView::new(view).visible(visible))
+});

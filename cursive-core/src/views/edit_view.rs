@@ -237,8 +237,7 @@ impl EditView {
     ///
     /// If you need a mutable closure and don't care about the recursive
     /// aspect, see [`set_on_edit_mut`](#method.set_on_edit_mut).
-    // #[crate::recipe_cb] // This will add a `set_on_edit_cb` method and a `on_edit_cb` method.
-    #[cursive_macros::callback_helpers]
+    #[crate::callback_helpers]
     pub fn set_on_edit<F>(&mut self, callback: F)
     where
         F: Fn(&mut Cursive, &str, usize) + 'static,
@@ -281,39 +280,6 @@ impl EditView {
         self.with(|v| v.set_on_edit(callback))
     }
 
-    //     /// Helper function to wrap a callback for the on_edit method.
-    //     ///
-    //     /// Auto-generated?
-    //     pub fn on_edit_cb<F>(
-    //         callback: F,
-    //     ) -> Rc<dyn Fn(&mut Cursive, &str, usize) + 'static>
-    //     where
-    //         F: Fn(&mut Cursive, &str, usize) + 'static,
-    //     {
-    //         Rc::new(callback)
-    //     }
-
-    //     /// Foo
-    //     ///
-    //     /// Auto-generated?
-    //     pub fn set_on_edit_cb(
-    //         &mut self,
-    //         config: &crate::builder::Config,
-    //         context: &crate::builder::Context,
-    //     ) -> Result<(), crate::builder::Error> {
-    //         if config.is_null() {
-    //             // Null means there never was a cb to begin with
-    //             return Ok(());
-    //         }
-
-    //         let on_edit: Rc<dyn Fn(&mut Cursive, &str, usize)> =
-    //             context.resolve_as_var(config)?;
-
-    //         self.set_on_edit(move |s, c, p| (*on_edit)(s, c, p));
-
-    //         Ok(())
-    //     }
-
     /// Sets a mutable callback to be called when `<Enter>` is pressed.
     ///
     /// `callback` will be given the content of the view.
@@ -347,6 +313,7 @@ impl EditView {
     ///
     /// If you need a mutable closure and don't care about the recursive
     /// aspect, see [`set_on_submit_mut`](#method.set_on_submit_mut).
+    #[crate::callback_helpers]
     pub fn set_on_submit<F>(&mut self, callback: F)
     where
         F: Fn(&mut Cursive, &str) + 'static,
@@ -753,7 +720,49 @@ crate::recipe!(EditView, |config, context| {
         edit_view.set_content(context.resolve::<String>(content)?);
     }
 
-    edit_view.set_on_edit_cb(context.resolve_as_var(&config["on_edit"])?);
+    if let Some(on_edit) = config.get("on_edit") {
+        edit_view.set_on_edit_cb(context.resolve_as_var(on_edit)?);
+    }
+
+    if let Some(on_submit) = config.get("on_submit") {
+        edit_view.set_on_submit_cb(context.resolve_as_var(on_submit)?);
+    }
 
     Ok(edit_view)
+});
+
+crate::var_recipe!("EditView.with_content", |config, context| {
+    let name: String = context.resolve(&config["name"])?;
+
+    // We won't resolve the callback just yet.
+    // Instead, store it and resolve it later, when we run the callback.
+    let callback = config["callback"].clone();
+    let context = context.clone();
+
+    let result: Rc<dyn Fn(&mut Cursive)> = Rc::new(move |s| {
+        let content: String = s
+            .call_on_name(&name, |view: &mut EditView| view.get_content())
+            .unwrap()
+            .as_ref()
+            .clone();
+
+        let context = context.sub_context(|c| {
+            c.store("content", content);
+        });
+
+        // Hopefully resolving this config as callback is what will pull the
+        // "content" variable we just set.
+        let callback: Rc<dyn Fn(&mut Cursive)> =
+            match context.resolve_as_var(&callback) {
+                Ok(callback) => callback,
+                Err(err) => {
+                    log::error!("Could not resolve callback: {err:?}");
+                    return;
+                }
+            };
+
+        (*callback)(s);
+    });
+
+    Ok(result)
 });

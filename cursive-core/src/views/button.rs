@@ -207,16 +207,16 @@ impl View for Button {
 }
 
 crate::recipe!(Button, |config, context| {
-    use std::rc::Rc;
-
     let label: String = context.resolve(&config["label"])?;
-    let callback: Rc<dyn Fn(&mut Cursive)> =
-        context.resolve_as_var(&config["callback"])?;
 
-    let mut button = crate::views::Button::new(label, move |s| (*callback)(s));
+    // let mut button = crate::views::Button::new(label, move |s| (*callback)(s));
+    let mut button = Button::new_with_cb(
+        label,
+        context.resolve_as_var(&config["callback"])?,
+    );
 
-    if let Some(enabled) = config.get("enabled") {
-        button.set_enabled(context.resolve(enabled)?);
+    if let Some(enabled) = context.resolve(&config["enabled"])? {
+        button.set_enabled(enabled);
     }
 
     Ok(button)

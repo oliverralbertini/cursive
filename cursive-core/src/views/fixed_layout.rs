@@ -33,6 +33,8 @@ pub struct FixedLayout {
     focus: usize,
 }
 
+// TODO: Add an option to have percentages as size/positions
+
 /// Represents a child view inside the FixedLayout.
 struct Child {
     view: Box<dyn View>,

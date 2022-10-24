@@ -781,16 +781,11 @@ crate::recipe!(LinearLayout, |config, context| {
 
     let mut layout = LinearLayout::new(orientation);
 
-    if let Some(children) = config.get("children") {
-        let children = children.as_array().ok_or_else(|| {
-            crate::builder::Error::InvalidConfig {
-                message: "LinearLayout.children should be an array.".into(),
-                config: children.clone(),
-            }
-        })?;
-
+    let children: Option<Vec<crate::views::BoxedView>> =
+        context.resolve_as_config(&config["children"])?;
+    if let Some(children) = children {
         for child in children {
-            layout.add_child(context.build(child)?);
+            layout.add_child(child);
         }
     }
 

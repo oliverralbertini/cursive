@@ -3,7 +3,11 @@
 Dialog:
   # Here we use the `title` variable.
   # Users of this template will have to specify a value for that before rendering it.
-  title: $title
+  title:
+    # We can use some of the builtin functions
+    $concat:
+      - "Title: "
+      - $title
   child:
     LinearLayout:
       children:
@@ -36,11 +40,21 @@ Dialog:
         - fixed_height: 11
   buttons:
     - Info:
-        # This uses a builtin callback variable.
-        $Dialog.info: This is an example of template-driven callback.
+        $EditView.with_content:
+          # This special callback fetches the content from a named EditView,
+          # then runs another callback with the result.
+          name: edit
+          callback:
+            # In the callback, `$content` will be set to the EditView's content.
+            $Dialog.info:
+              $concat:
+                - "This is an example of template-driven callback.\nThe current content is: `"
+                - $content
+                - "`."
     # This is another builtin callback
     - Exit: $Cursive.quit
   with:
+    - circular_focus: left_right
     - layer
     - shadow
     - padding:

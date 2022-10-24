@@ -25,6 +25,8 @@ cursive::recipe!(Titled, |config, context| {
 });
 
 fn main() {
+    cursive::logger::init();
+
     // We will build a view from a template (possibly written by another team)
     let mut context = cursive::builder::Context::new();
 
@@ -42,6 +44,7 @@ fn main() {
     let view = context.build(&config).unwrap();
 
     let mut siv = cursive::default();
+    siv.add_global_callback('~', cursive::Cursive::toggle_debug_console);
     siv.screen_mut().add_transparent_layer(view);
     siv.run();
 }
@@ -58,9 +61,12 @@ fn on_edit_callback(siv: &mut cursive::Cursive, text: &str, cursor: usize) {
 }
 
 // Still TODO:
-// * !! Auto-generate callback helpers (proc macro?)
 // * Write more recipes
 // * Simplify a bit Rc everywhere
 // * resolve() could return a `Result<Option<T>, Error>` to treat missing and invalid type differently?
 // * Merge recipes & variables?
 // * Documentation
+// * Standardize casing of values
+//      * CamelCase? (Currently used for Views)
+//      * snake_case? (Currently used for wrappers, keys and some values)
+//      * space case? (Currently used for some values)

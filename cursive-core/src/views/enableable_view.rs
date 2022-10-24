@@ -63,3 +63,9 @@ impl<V: View> ViewWrapper for EnableableView<V> {
         self.view.draw(&printer.enabled(self.enabled));
     }
 }
+
+crate::recipe!(with enableable, |config, context| {
+    let enabled = config.get("enabled").map(|enabled| context.resolve(enabled)).transpose()?.unwrap_or(true);
+
+    Ok(move |view| EnableableView::new(view).with_enabled(enabled))
+});

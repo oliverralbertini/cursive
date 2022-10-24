@@ -1,4 +1,5 @@
 use super::{BaseColor, Color, ColorPair, Palette, PaletteColor};
+use std::str::FromStr;
 
 /// Possible color style for a cell.
 ///
@@ -287,6 +288,27 @@ impl ColorType {
 impl From<BaseColor> for ColorType {
     fn from(color: BaseColor) -> Self {
         ColorType::Color(color.dark())
+    }
+}
+
+impl FromStr for ColorType {
+    type Err = crate::theme::NoSuchColor;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if value == "parent" || value == "inherit parent" {
+            return Ok(Self::InheritParent);
+        }
+
+        if let Some(color) = Color::parse(value) {
+            return Ok(Self::Color(color));
+        }
+
+        if let Ok(color) = PaletteColor::from_str(value) {
+            return Ok(Self::Palette(color));
+        }
+
+        log::warn!("Could not parse color type `{value}`.");
+        Err(crate::theme::NoSuchColor)
     }
 }
 

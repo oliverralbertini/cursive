@@ -52,6 +52,21 @@ impl BaseColor {
     pub fn all() -> impl Iterator<Item = Self> {
         (0..Self::LENGTH).map(Self::from_usize)
     }
+
+    /// Parse a string into a base color.
+    pub fn parse(value: &str) -> Option<Self> {
+        Some(match value {
+            "Black" | "black" => BaseColor::Black,
+            "Red" | "red" => BaseColor::Red,
+            "Green" | "green" => BaseColor::Green,
+            "Yellow" | "yellow" => BaseColor::Yellow,
+            "Blue" | "blue" => BaseColor::Blue,
+            "Magenta" | "magenta" => BaseColor::Magenta,
+            "Cyan" | "cyan" => BaseColor::Cyan,
+            "White" | "white" => BaseColor::White,
+            _ => return None,
+        })
+    }
 }
 
 impl From<u8> for BaseColor {
@@ -161,31 +176,28 @@ impl Color {
     /// * `"default"` becomes `Color::TerminalDefault`
     /// * `"#123456"` becomes `Color::Rgb(0x12, 0x34, 0x56)`
     pub fn parse(value: &str) -> Option<Self> {
-        Some(match value {
-            "dark black" | "black" => Color::Dark(BaseColor::Black),
-            "dark red" | "red" => Color::Dark(BaseColor::Red),
-            "dark green" | "green" => Color::Dark(BaseColor::Green),
-            "dark yellow" | "yellow" => Color::Dark(BaseColor::Yellow),
-            "dark blue" | "blue" => Color::Dark(BaseColor::Blue),
-            "dark magenta" | "magenta" => Color::Dark(BaseColor::Magenta),
-            "dark cyan" | "cyan" => Color::Dark(BaseColor::Cyan),
-            "dark white" | "white" => Color::Dark(BaseColor::White),
-            "light black" => Color::Light(BaseColor::Black),
-            "light red" => Color::Light(BaseColor::Red),
-            "light green" => Color::Light(BaseColor::Green),
-            "light yellow" => Color::Light(BaseColor::Yellow),
-            "light blue" => Color::Light(BaseColor::Blue),
-            "light magenta" => Color::Light(BaseColor::Magenta),
-            "light cyan" => Color::Light(BaseColor::Cyan),
-            "light white" => Color::Light(BaseColor::White),
-            "default" => Color::TerminalDefault,
-            value => {
-                return parse_special(value).or_else(|| {
-                    log::warn!("Could not parse color `{}`.", value);
-                    None
-                })
-            }
-        })
+        if value == "default" || value == "terminal default" {
+            return Some(Color::TerminalDefault);
+        }
+
+        if let Some(base) =
+            value.strip_prefix("light ").and_then(BaseColor::parse)
+        {
+            return Some(Color::Light(base));
+        }
+
+        if let Some(base) =
+            BaseColor::parse(value.strip_prefix("dark ").unwrap_or(value))
+        {
+            return Some(Color::Dark(base));
+        }
+
+        if let Some(color) = parse_special(value) {
+            return Some(color);
+        }
+
+        log::warn!("Could not parse color `{}`.", value);
+        None
     }
 }
 

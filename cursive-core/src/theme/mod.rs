@@ -217,6 +217,18 @@ use std::io::Read;
 #[cfg(feature = "toml")]
 use std::path::Path;
 
+/// Error parsing a color.
+#[derive(Debug)]
+pub struct NoSuchColor;
+
+impl std::fmt::Display for NoSuchColor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Could not parse the given color")
+    }
+}
+
+impl std::error::Error for NoSuchColor {}
+
 /// Represents the style a Cursive application will use.
 #[derive(Clone, Debug)]
 pub struct Theme {

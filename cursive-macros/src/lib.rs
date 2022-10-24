@@ -137,7 +137,7 @@ fn find_fn_generic(
 }
 
 fn bound_to_dyn(bound: &syn::TraitBound) -> proc_macro2::TokenStream {
-    quote!(::std::rc::Rc<dyn #bound>).into()
+    quote!(::std::rc::Rc<dyn #bound>)
 }
 
 fn get_arity(bound: &syn::TraitBound) -> usize {
@@ -237,8 +237,13 @@ pub fn callback_helpers(
     let (fn_bound, cb_arg_name, type_ident) = find_fn_generic(&input.sig)
         .expect("Could not find function-like generic parameter.");
 
+    // Fn-ify the function bound
+    let mut fn_bound = fn_bound.clone();
+    fn_bound.path.segments.last_mut().unwrap().ident =
+        syn::Ident::new("Fn", Span::call_site());
+
     // We will deduce a dyn-able type from this bound (a Rc<dyn Fn() -> ...)
-    let dyn_type = bound_to_dyn(fn_bound);
+    let dyn_type = bound_to_dyn(&fn_bound);
 
     // set_on_foo | new
     let fn_ident = &input.sig.ident;
@@ -298,7 +303,7 @@ This is mostly useful when using this view in a template."#
     };
 
     // a,b,c... for as many arguments as the function takes.
-    let n_args = get_arity(fn_bound);
+    let n_args = get_arity(&fn_bound);
 
     let cb_args: Vec<_> =
         (0..n_args).map(|i| quote::format_ident!("a{i}")).collect();
