@@ -187,7 +187,7 @@ crate::recipe!(Checkbox, |config, context| {
     let mut checkbox = Checkbox::new();
 
     if let Some(on_change) = config.get("on_change") {
-        checkbox.set_on_change_cb(context.resolve_as_var(on_change)?);
+        checkbox.set_on_change_cb(context.resolve(on_change)?);
     }
 
     if let Some(checked) = context.resolve(&config["checked"])? {

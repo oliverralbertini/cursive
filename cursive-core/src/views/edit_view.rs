@@ -721,11 +721,11 @@ crate::recipe!(EditView, |config, context| {
     }
 
     if let Some(on_edit) = config.get("on_edit") {
-        edit_view.set_on_edit_cb(context.resolve_as_var(on_edit)?);
+        edit_view.set_on_edit_cb(context.resolve(on_edit)?);
     }
 
     if let Some(on_submit) = config.get("on_submit") {
-        edit_view.set_on_submit_cb(context.resolve_as_var(on_submit)?);
+        edit_view.set_on_submit_cb(context.resolve(on_submit)?);
     }
 
     Ok(edit_view)
@@ -753,7 +753,7 @@ crate::var_recipe!("EditView.with_content", |config, context| {
         // Hopefully resolving this config as callback is what will pull the
         // "content" variable we just set.
         let callback: Rc<dyn Fn(&mut Cursive)> =
-            match context.resolve_as_var(&callback) {
+            match context.resolve(&callback) {
                 Ok(callback) => callback,
                 Err(err) => {
                     log::error!("Could not resolve callback: {err:?}");

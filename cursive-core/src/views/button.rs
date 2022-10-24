@@ -210,10 +210,8 @@ crate::recipe!(Button, |config, context| {
     let label: String = context.resolve(&config["label"])?;
 
     // let mut button = crate::views::Button::new(label, move |s| (*callback)(s));
-    let mut button = Button::new_with_cb(
-        label,
-        context.resolve_as_var(&config["callback"])?,
-    );
+    let mut button =
+        Button::new_with_cb(label, context.resolve(&config["callback"])?);
 
     if let Some(enabled) = context.resolve(&config["enabled"])? {
         button.set_enabled(enabled);

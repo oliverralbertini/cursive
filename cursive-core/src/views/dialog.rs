@@ -959,10 +959,7 @@ crate::recipe!(Dialog, |config, context| {
             if let Some(button) = button.as_object() {
                 // Expect a key (the button label) and the callback as value.
                 for (key, value) in button {
-                    dialog.add_button_with_cb(
-                        key,
-                        context.resolve_as_var(value)?,
-                    );
+                    dialog.add_button_with_cb(key, context.resolve(value)?);
                 }
             }
         }

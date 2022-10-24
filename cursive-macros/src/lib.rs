@@ -208,7 +208,7 @@ fn get_arity(bound: &syn::TraitBound) -> usize {
 ///
 /// cursive::recipe!(Foo, |config, context| {
 ///     let foo =
-///         Foo::new_with_cb(context.resolve_as_var(config["callback"])?);
+///         Foo::new_with_cb(context.resolve(config["callback"])?);
 ///
 ///     Ok(foo)
 /// });

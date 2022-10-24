@@ -310,49 +310,43 @@ pub trait FromConfig {
 //              ...                               | Final implementations
 //              <A B C> [&mut A &mut B &mut C] () |
 macro_rules! impl_fn_from_config {
-    // Here are two graceful ends for recursions.
+    // Here is a graceful end for recursion.
     (
         $trait:ident
         ( )
     ) => { };
     (
         $trait:ident
-        < >
-        [ ]
-        ( )
-    ) => { };
-    (
-        $trait:ident
-        < $($letters:ident)+ >
-        [ $($args:ty)+ ]
+        < $($letters:ident $(: ?$unbound:ident)?)* >
+        [ $($args:ty)* ]
         ( )
     ) => {
         // The leaf node is the actual implementation
         #[allow(coherence_leak_check)]
-        impl<$($letters),* > $trait for Rc<dyn Fn($($args),*)> {}
+        impl<Res, $($letters $(: ?$unbound)?),* > $trait for Rc<dyn Fn($($args),*) -> Res> {}
     };
     (
         $trait:ident
-        < $($letters:ident)* >
+        < $($letters:ident $(: ?$unbound:ident)?)* >
         [ $($args:ty)* ]
         ( $head:ident $($leftover:ident)* )
     ) => {
         // Here we just branch per ref type
         impl_fn_from_config!(
             $trait
-            < $head $($letters)* >
+            < $head $($letters $(: ?$unbound)?)* >
             [ $head $($args)* ]
             ( $($leftover)* )
         );
         impl_fn_from_config!(
             $trait
-            < $head $($letters)* >
+            < $head: ?Sized $($letters $(: ?$unbound)?)* >
             [ & $head $($args)* ]
             ( $($leftover)* )
         );
         impl_fn_from_config!(
             $trait
-            < $head $($letters)* >
+            < $head: ?Sized $($letters $(: ?$unbound)?)* >
             [ &mut $head $($args)* ]
             ( $($leftover)* )
         );
