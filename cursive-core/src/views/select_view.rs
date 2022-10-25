@@ -140,6 +140,7 @@ impl<T: 'static> SelectView<T> {
     }
 
     /// Sets a callback to be used when an item is selected.
+    #[crate::callback_helpers]
     pub fn set_on_select<F>(&mut self, cb: F)
     where
         F: Fn(&mut Cursive, &T) + 'static,
@@ -191,9 +192,10 @@ impl<T: 'static> SelectView<T> {
     /// The item currently selected will be given to the callback.
     ///
     /// Here, `V` can be `T` itself, or a type that can be borrowed from `T`.
-    pub fn set_on_submit<F, R, V: ?Sized>(&mut self, cb: F)
+    #[crate::callback_helpers]
+    pub fn set_on_submit<F, V: ?Sized>(&mut self, cb: F)
     where
-        F: 'static + Fn(&mut Cursive, &V) -> R,
+        F: 'static + Fn(&mut Cursive, &V),
         T: Borrow<V>,
     {
         self.on_submit = Some(Rc::new(move |s, t| {
@@ -1047,6 +1049,24 @@ impl<T> Item<T> {
         Item { label, value }
     }
 }
+
+crate::recipe!(SelectView, |config, context| {
+    let mut select = SelectView::<String>::new();
+
+    if let Some(autojump) = context.resolve(&config["autojump"])? {
+        select.set_autojump(autojump);
+    }
+
+    if let Some(popup) = context.resolve(&config["popup"])? {
+        select.set_popup(popup);
+    }
+
+    if let Some(callback) = context.resolve(&config["on_select"])? {
+        select.set_on_select_cb(callback);
+    }
+
+    Ok(select)
+});
 
 #[cfg(test)]
 mod tests {

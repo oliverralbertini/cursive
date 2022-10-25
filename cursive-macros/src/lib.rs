@@ -260,6 +260,8 @@ pub fn callback_helpers(
     // on_foo_cb | new_cb
     let maker_ident = syn::Ident::new(&maker_name, Span::call_site());
 
+    // TODO: There may be extra generics for F, such as a generic argument.
+
     let maker_doc = format!(
         r#"Helper method to store a callback of the correct type for [`Self::{fn_ident}`].
 

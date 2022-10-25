@@ -675,3 +675,14 @@ impl View for TextArea {
         )
     }
 }
+
+crate::recipe!(TextArea, |config, context| {
+    let mut area = TextArea::new();
+
+    let content: Option<String> = context.resolve(&config["content"])?;
+    if let Some(content) = content {
+        area.set_content(content);
+    }
+
+    Ok(area)
+});

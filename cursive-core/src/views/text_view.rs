@@ -451,10 +451,7 @@ crate::recipe!(TextView, |config, context| {
     let content = match config {
         crate::builder::Config::String(_) => context.resolve(config)?,
         crate::builder::Config::Object(config) => {
-            match config.get("content") {
-                Some(content) => context.resolve(content)?,
-                None => String::new(),
-            }
+            context.resolve_or(&config["content"], String::new())?
         }
         _ => String::new(),
     };

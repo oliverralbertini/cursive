@@ -406,6 +406,58 @@ impl FromConfig for crate::theme::BaseColor {
     }
 }
 
+impl FromConfig for crate::theme::Palette {
+    fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
+        let mut palette = Self::default();
+
+        let config = config
+            .as_object()
+            .ok_or_else(|| Error::invalid_config("Expected object", config))?;
+
+        for (key, value) in config {
+            if let Ok(value) = context.resolve(value) {
+                palette.set_color(key, value);
+            } else if let Some(value) = value.as_object() {
+                // We don't currently support namespace themes here.
+                // ¯\_(ツ)_/¯
+                log::warn!(
+                    "Namespaces are not currently supported in configs. (When reading color for `{key}`: {value:?}.)"
+                );
+            }
+        }
+
+        Ok(palette)
+    }
+}
+
+impl FromConfig for crate::theme::BorderStyle {
+    fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
+        let borders: String = context.resolve(config)?;
+
+        Ok(Self::from(&borders))
+    }
+}
+
+impl FromConfig for crate::theme::Theme {
+    fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
+        let mut theme = Self::default();
+
+        if let Some(shadow) = context.resolve(&config["shadow"])? {
+            theme.shadow = shadow;
+        }
+
+        if let Some(borders) = context.resolve(&config["borders"])? {
+            theme.borders = borders;
+        }
+
+        if let Some(palette) = context.resolve(&config["palette"])? {
+            theme.palette = palette;
+        }
+
+        Ok(theme)
+    }
+}
+
 // A bunch of `impl From<T: FromConfig>` can easily implement FromConfig
 impl<T> FromConfig for Box<T>
 where
@@ -430,31 +482,14 @@ where
     T: 'static + FromConfig,
 {
     fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
-        let config =
-            config.as_array().ok_or_else(|| Error::InvalidConfig {
-                message: "Expected array".into(),
-                config: config.clone(),
-            })?;
+        let config = match config {
+            Config::Array(config) => config,
+            // Missing value get an empty vec
+            Config::Null => return Ok(Vec::new()),
+            _ => return Err(Error::invalid_config("Expected array", config)),
+        };
 
-        // Current problem:
-        // We have 2 options:
-        // A) Require T: Clone, and allow resolving the items as variables.
-        //      - This allows us to resolve Vec<BoxedView>
-        //              - Otherwise we'd need to resolve each item individually as BoxedView.
-        //      - This prevents us from resolving [1, 2, "$three"] as Vec<i32>
-        //              - Instead we would resolve each item as i32 individually, not as a Vec.
-        // B) Not require T: Clone, and only resolve the items as configs.
-        //      - Opposite behaviour from A)
-        //
-        // Current solution: B)
-
-        config
-            .iter()
-            // This will not resolve, for example, [1, 2, "$three"].
-            // Do we want to?
-            // If so, should the variable check be in `T::from_config`?
-            .map(|v| context.resolve(v))
-            .collect()
+        config.iter().map(|v| context.resolve(v)).collect()
     }
 }
 
@@ -583,6 +618,30 @@ impl FromConfig for crate::theme::ColorStyle {
     }
 }
 
+impl FromConfig for crate::view::Offset {
+    fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
+        if let Some("center" | "Center") = config.as_str() {
+            return Ok(Self::Center);
+        }
+
+        let config = config.as_object().ok_or_else(|| {
+            Error::invalid_config("Expected `center` or an object.", config)
+        })?;
+
+        let (key, value) = config.iter().next().ok_or_else(|| {
+            Error::invalid_config("Expected non-empty object.", config)
+        })?;
+
+        match key.as_str() {
+            "Absolute" | "absolute" => {
+                Ok(Self::Absolute(context.resolve(value)?))
+            }
+            "Parent" | "parent" => Ok(Self::Parent(context.resolve(value)?)),
+            _ => Err(Error::invalid_config("Unexpected key `{key}`.", config)),
+        }
+    }
+}
+
 // Literals don't need a context at all
 
 impl FromConfig for String {
@@ -635,6 +694,24 @@ impl FromConfig for u64 {
     }
 }
 
+impl FromConfig for isize {
+    fn from_config(
+        config: &Config,
+        _context: &Context,
+    ) -> Result<Self, Error> {
+        if let Some(config) = config.as_i64() {
+            if let Ok(config) = config.try_into() {
+                return Ok(config);
+            }
+        }
+
+        Err(Error::invalid_config(
+            format!("Expected signed <= {}", usize::max_value()),
+            config,
+        ))
+    }
+}
+
 impl FromConfig for usize {
     fn from_config(
         config: &Config,
@@ -652,20 +729,21 @@ impl FromConfig for usize {
     }
 }
 
-impl FromConfig for crate::Vec2 {
+impl<T: FromConfig + 'static> FromConfig for crate::XY<T> {
     fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
         Ok(match config {
             Config::Array(config) if config.len() == 2 => {
                 let x = context.resolve(&config[0])?;
                 let y = context.resolve(&config[1])?;
-                crate::Vec2::new(x, y)
+                crate::XY::new(x, y)
             }
             Config::Object(config) => {
                 let x = context.resolve(&config["x"])?;
                 let y = context.resolve(&config["y"])?;
-                crate::Vec2::new(x, y)
+                crate::XY::new(x, y)
             }
-            Config::String(config) if config == "zero" => crate::Vec2::zero(),
+            // That one would require specialization?
+            // Config::String(config) if config == "zero" => crate::Vec2::zero(),
             config => {
                 return Err(Error::invalid_config(
                     "Expected Array of length 2, object, or 'zero'.",
