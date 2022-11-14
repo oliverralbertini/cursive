@@ -294,21 +294,35 @@ pub trait FromConfig {
             config: config.clone(),
         })
     }
+
+    /// Build from an `Any` variable.
+    ///
+    /// Default implementation tries to downcast to `Self`.
+    ///
+    /// Override if you want to try downcasting to other types as well.
+    fn from_any(any: Box<dyn Any>) -> Option<Self>
+    where
+        Self: Sized + Any,
+    {
+        any.downcast().ok().map(|b| *b)
+    }
 }
 
 // Implement a trait for Fn(A, B), Fn(&A, B), Fn(A, &B), ...
 // We do this by going down a tree:
-// (A  B  C  D)
-//      (B  C  D) to handle the case for 3 args
+// (D C B A)
+//      (C B A) to handle the case for 3 args
 //          ...
-//      <> [] (A B C D) to start actual work for 4 args
-//          <A> [A]  (B C D)        |
-//          <A> [&A] (B C D)        | Here we branch and recurse
-//          <A> [&mut A] (B C D)    |
+//      <> [] (D C B A) to start actual work for 4 args
+//          <D> [D]  (C B A)        |
+//          <D> [&D] (C B A)        | Here we branch and recurse
+//          <D> [&mut D] (C B A)    |
 //              ...
-//              <A B C> [A B C]  ()               |
-//              ...                               | Final implementations
-//              <A B C> [&mut A &mut B &mut C] () |
+//              <A B C D> [A B C D]  ()          |
+//              ...                              |
+//              <A B C: ?Sized D> [A B &C D] ()  | Final implementations
+//              ...                              |
+//              <A: ?Sized B: ?Sized C: ?Sized D: ?Sized> [&mut A &mut B &mut C &mut D] ()
 macro_rules! impl_fn_from_config {
     // Here is a graceful end for recursion.
     (
@@ -371,7 +385,11 @@ macro_rules! impl_fn_from_config {
 
 // Implement FromConfig for all functions taking 4 or less arguments.
 // (They will all fail to deserialize, but at least we can call resolve() on them)
-impl_fn_from_config!(FromConfig (A B C D));
+// We could consider increasing that? It would probably increase compilation time, and clutter the
+// FromConfig doc page. Maybe behind a feature if people really need it?
+// (Ideally we wouldn't need it and we'd have a blanket implementation instead, but that may
+// require specialization.)
+impl_fn_from_config!(FromConfig (D C B A));
 
 impl<T> FromConfig for Option<T>
 where
@@ -383,6 +401,24 @@ where
         } else {
             Ok(Some(T::from_config(config, context)?))
         }
+    }
+
+    fn from_any(any: Box<dyn Any>) -> Option<Self>
+    where
+        Self: Sized + Any,
+    {
+        // First try the option, then try bare T.
+        any.downcast().map(|b| *b)
+             // Here we have a Result<Option<T>, _>
+            .or_else(|any| any.downcast::<T>().map(|b| Some(*b)))
+            .ok()
+    }
+}
+
+impl FromConfig for Box<dyn crate::view::View> {
+    fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
+        let boxed: BoxedView = context.build(config)?;
+        Ok(boxed.unwrap())
     }
 }
 
@@ -466,6 +502,14 @@ where
     fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
         Ok(Box::new(T::from_config(config, context)?))
     }
+
+    fn from_any(any: Box<dyn Any>) -> Option<Self> {
+        // First try a Box<T>
+        any.downcast::<Self>().map(|b| *b)
+             // Then try a bare T
+            .or_else(|any| any.downcast::<T>())
+            .ok()
+    }
 }
 
 impl<T> FromConfig for Rc<T>
@@ -474,6 +518,14 @@ where
 {
     fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
         Ok(Rc::new(T::from_config(config, context)?))
+    }
+
+    fn from_any(any: Box<dyn Any>) -> Option<Self> {
+        // First try a Box<T>
+        any.downcast::<Self>().map(|b| *b)
+             // Then try a bare T
+            .or_else(|any| any.downcast::<T>().map(|b| b.into()))
+            .ok()
     }
 }
 
@@ -667,6 +719,8 @@ impl FromConfig for bool {
     }
 }
 
+// TODO: Have numbers look for other types as well? (in their from_any)
+// isize/usize?
 impl FromConfig for u8 {
     fn from_config(
         config: &Config,
@@ -855,12 +909,7 @@ impl Context {
     /// Resolve a value.
     ///
     /// Needs to be a reference to a variable.
-    ///
-    /// This is for types that simply cannot be written in the template itself - they _have_ to be
-    /// stored as variable by Rust code.
-    ///
-    /// This is mostly closures.
-    pub fn resolve_as_var<T: 'static>(
+    pub fn resolve_as_var<T: 'static + FromConfig>(
         &self,
         config: &Config,
     ) -> Result<T, Error> {
@@ -868,7 +917,7 @@ impl Context {
         if let Some(name) = parse_var(config) {
             // log::info!("Trying to load variable {name:?}");
             // Option 1: a simple variable name.
-            self.load_as_var(name, &Config::Null)
+            self.load(name, &Config::Null)
         } else if let Some(config) = config.as_object() {
             // Option 2: an object with a key (variable name pointing to a cb
             // recipe) and a body (config for the recipe).
@@ -884,7 +933,7 @@ impl Context {
                     config: config.clone().into(),
                 })?;
 
-            self.load_as_var(key, value)
+            self.load(key, value)
         } else {
             // Here we did not find anything that looks like a variable.
             // Let's just bubble up, and hope we can use resolve() instead.
@@ -1072,6 +1121,7 @@ impl Context {
         }
     }
 
+    /*
     /// Loads a variable of the given type.
     ///
     /// This does not require FromConfig on `T`, but will also not try to deserialize.
@@ -1088,35 +1138,33 @@ impl Context {
             |config| self.resolve_as_var(config),
         )
     }
+    */
 
     // Helper function to implement load_as_var and load
-    fn on_maker<'a, T: 'static>(
-        &'a self,
-        name: &'a str,
-        config: &'a Config,
-    ) -> impl Fn(&AnyMaker) -> Result<T, Error> + 'a {
-        move |maker| {
-            let res: Box<dyn Any> = (maker)(config, self)?;
+    fn on_maker<T: 'static + FromConfig>(
+        &self,
+        maker: &AnyMaker,
+        name: &str,
+        config: &Config,
+    ) -> Result<T, Error> {
+        let res: Box<dyn Any> = (maker)(config, self)?;
 
-            // eprintln!(
-            //     "Trying to load {name} as {:?} (for {})",
-            //     std::any::TypeId::of::<T>(),
-            //     std::any::type_name::<T>()
-            // );
-            // eprintln!(
-            //     "Loading var `{name}`: found type ID {:?}",
-            //     res.as_ref().type_id()
-            // );
-            res.downcast()
-                .map_err(|_| {
-                    // It was not the right type :(
-                    Error::IncorrectVariableType {
-                        name: name.into(),
-                        expected_type: std::any::type_name::<T>().into(),
-                    }
-                })
-                .map(|b| *b)
-        }
+        // eprintln!(
+        //     "Trying to load {name} as {:?} (for {})",
+        //     std::any::TypeId::of::<T>(),
+        //     std::any::type_name::<T>()
+        // );
+        // eprintln!(
+        //     "Loading var `{name}`: found type ID {:?}",
+        //     res.as_ref().type_id()
+        // );
+        T::from_any(res).ok_or_else(|| {
+            // It was not the right type :(
+            Error::IncorrectVariableType {
+                name: name.into(),
+                expected_type: std::any::type_name::<T>().into(),
+            }
+        })
     }
 
     /// Loads a variable of the given type.
@@ -1129,7 +1177,7 @@ impl Context {
     ) -> Result<T, Error> {
         self.variables.call_on_any(
             name,
-            self.on_maker(name, config),
+            |maker| self.on_maker(maker, name, config),
             |config| self.resolve(config),
         )
     }

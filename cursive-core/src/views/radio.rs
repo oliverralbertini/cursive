@@ -6,6 +6,7 @@ use crate::{
     Cursive, Printer, Vec2, With,
 };
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 type Callback<T> = dyn Fn(&mut Cursive, &T);
@@ -239,3 +240,42 @@ impl<T: 'static> View for RadioButton<T> {
         }
     }
 }
+
+thread_local! {
+    pub static GLOBAL_GROUPS: RefCell<HashMap<String, RadioGroup<String>>> = RefCell::new(HashMap::new());
+}
+
+crate::recipe!(RadioButton, |config, context| {
+    use crate::builder::{Config, Context, Error, FromConfig};
+
+    impl FromConfig for RadioGroup<String> {
+        fn from_config(
+            config: &Config,
+            context: &Context,
+        ) -> Result<Self, Error> {
+            let name: String = context.resolve(&config)?;
+
+            let group =
+                std::thread::LocalKey::with(&GLOBAL_GROUPS, |groups| {
+                    groups
+                        .borrow_mut()
+                        .entry(name)
+                        .or_insert_with(RadioGroup::new)
+                        .clone()
+                });
+
+            Ok(group)
+        }
+    }
+
+    // TODO: Let a template generate a unique name and use it as radio group.
+
+    // Use a thread-local pool of named groups.
+    // We resolve it, so it would also work if user store a group and use it as variable.
+    let mut group: RadioGroup<String> = context.resolve(&config["group"])?;
+    let label: String = context.resolve(&config["label"])?;
+
+    let button = group.button_str(label);
+
+    Ok(button)
+});

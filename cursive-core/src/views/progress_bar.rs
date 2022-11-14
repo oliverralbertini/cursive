@@ -313,3 +313,5 @@ impl View for ProgressBar {
         });
     }
 }
+
+crate::recipe!(ProgressBar, |config, context| {});

@@ -192,7 +192,6 @@ impl<T: 'static> SelectView<T> {
     /// The item currently selected will be given to the callback.
     ///
     /// Here, `V` can be `T` itself, or a type that can be borrowed from `T`.
-    #[crate::callback_helpers]
     pub fn set_on_submit<F, V: ?Sized>(&mut self, cb: F)
     where
         F: 'static + Fn(&mut Cursive, &V),
@@ -1064,6 +1063,9 @@ crate::recipe!(SelectView, |config, context| {
     if let Some(callback) = context.resolve(&config["on_select"])? {
         select.set_on_select_cb(callback);
     }
+
+    let items: Vec<String> = context.resolve(&config["items"])?;
+    select.add_all_str(items);
 
     Ok(select)
 });

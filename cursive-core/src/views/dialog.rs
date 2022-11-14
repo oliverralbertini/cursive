@@ -944,25 +944,46 @@ impl View for Dialog {
 }
 
 crate::recipe!(Dialog, |config, context| {
+    use crate::builder::{Config, Context, Error, FromConfig};
     let mut dialog = Dialog::new();
 
-    if let Some(title) = config.get("title") {
-        dialog.set_title(context.resolve::<String>(title)?);
+    if let Some(title) = context.resolve(&config["title"])? {
+        dialog.set_title::<String>(title);
     }
 
-    if let Some(child) = config.get("child") {
-        dialog.set_content(context.build(child)?);
+    let child: Option<BoxedView> = context.resolve(&config["child"])?;
+    if let Some(child) = child {
+        dialog.set_content(child);
     }
 
-    if let Some(buttons) = config["buttons"].as_array() {
-        for button in buttons {
-            if let Some(button) = button.as_object() {
-                // Expect a key (the button label) and the callback as value.
-                for (key, value) in button {
-                    dialog.add_button_with_cb(key, context.resolve(value)?);
-                }
-            }
+    struct Btn {
+        key: String,
+        value: std::rc::Rc<dyn Fn(&mut Cursive)>,
+    }
+
+    impl FromConfig for Btn {
+        fn from_config(
+            config: &Config,
+            context: &Context,
+        ) -> Result<Self, Error> {
+            let config = config.as_object().ok_or_else(|| {
+                Error::invalid_config("Expected object", config)
+            })?;
+
+            let (key, value) = config.iter().next().ok_or_else(|| {
+                Error::invalid_config("Expected non-empty object", config)
+            })?;
+
+            let key = key.into();
+            let value = context.resolve(value)?;
+
+            Ok(Btn { key, value })
         }
+    }
+
+    let buttons: Vec<Btn> = context.resolve(&config["buttons"])?;
+    for btn in buttons {
+        dialog.add_button_with_cb(btn.key, btn.value);
     }
 
     Ok(dialog)

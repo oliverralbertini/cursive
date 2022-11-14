@@ -448,9 +448,12 @@ impl View for TextView {
 }
 
 crate::recipe!(TextView, |config, context| {
+    // Two ways to make a textview:
+    // * Inline content
+    // * Object with a `content` field.
     let content = match config {
         crate::builder::Config::String(_) => context.resolve(config)?,
-        crate::builder::Config::Object(config) => {
+        crate::builder::Config::Object(_) => {
             context.resolve_or(&config["content"], String::new())?
         }
         _ => String::new(),

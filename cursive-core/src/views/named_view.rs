@@ -120,5 +120,11 @@ impl<T: View + 'static> ViewWrapper for NamedView<T> {
 
 crate::recipe!(with name, |config, context| {
     let name: String = context.resolve(config)?;
-    Ok(|view| crate::views::NamedView::new(name, view))
+    Ok(|view| NamedView::new(name, view))
+});
+
+crate::recipe!(NamedView, |config, context| {
+    let name: String = context.resolve(&config["name"])?;
+    let view: crate::views::BoxedView = context.resolve(&config["view"])?;
+    Ok(NamedView::new(name, view))
 });

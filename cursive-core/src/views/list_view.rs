@@ -95,14 +95,14 @@ impl ListView {
     /// Adds a view to the end of the list.
     pub fn add_child<V: IntoBoxedView + 'static>(
         &mut self,
-        label: &str,
+        label: impl Into<String>,
         view: V,
     ) {
         let view = view.into_boxed_view();
 
         // Why were we doing this here?
         // view.take_focus(direction::Direction::none());
-        self.children.push(ListChild::Row(label.to_string(), view));
+        self.children.push(ListChild::Row(label.into(), view));
         self.children_heights.push(0);
     }
 
@@ -149,6 +149,7 @@ impl ListView {
     }
 
     /// Sets a callback to be used when an item is selected.
+    #[crate::callback_helpers]
     pub fn set_on_select<F>(&mut self, cb: F)
     where
         F: Fn(&mut Cursive, &String) + 'static,
@@ -510,3 +511,41 @@ impl View for ListView {
         area + (0, y_offset)
     }
 }
+
+// TODO: crate recipe?
+// ```yaml
+// - ListView:
+//     children:
+//
+//       - foo: TextView
+//       - $label: TextView
+// ```
+crate::recipe!(ListView, |config, context| {
+    use crate::builder::{Config, Context, Error, FromConfig};
+
+    impl FromConfig for ListChild {
+        fn from_config(
+            config: &Config,
+            context: &Context,
+        ) -> Result<Self, Error> {
+            if config.as_str() == Some("delimiter") {
+                Ok(ListChild::Delimiter)
+            } else {
+                let view = context.resolve(&config["view"])?;
+                let label = context.resolve(&config["label"])?;
+                Ok(ListChild::Row(label, view))
+            }
+        }
+    }
+
+    let mut view = ListView::new();
+
+    view.children = context.resolve(&config["children"])?;
+    view.children_heights.resize(view.children.len(), 0);
+
+    if let Some(on_select) = context.resolve(&config["on_select"])? {
+        view.set_on_select_cb(on_select);
+    }
+
+    Ok(view)
+});

@@ -28,6 +28,135 @@ fn find_arg_name<'a>(
     panic!("Could not find argument with type {type_name}.");
 }
 
+fn find_dependent_generics(
+    signature: &syn::Signature,
+    bound: &syn::TraitBound,
+) -> proc_macro2::TokenStream {
+    use std::collections::HashMap;
+
+    fn visit_path_idents(p: &syn::Path, f: &mut impl FnMut(&syn::Ident)) {
+        for segment in &p.segments {
+            f(&segment.ident);
+            match &segment.arguments {
+                syn::PathArguments::AngleBracketed(arguments) => {
+                    for argument in &arguments.args {
+                        match argument {
+                            syn::GenericArgument::Type(t) => {
+                                visit_type_idents(t, f)
+                            }
+                            syn::GenericArgument::Binding(b) => {
+                                visit_type_idents(&b.ty, f)
+                            }
+                            _ => (),
+                        }
+                    }
+                }
+                syn::PathArguments::Parenthesized(arguments) => {
+                    for t in &arguments.inputs {
+                        visit_type_idents(t, f);
+                    }
+                    if let syn::ReturnType::Type(_, t) = &arguments.output {
+                        visit_type_idents(&t, f);
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+
+    fn visit_type_idents(t: &syn::Type, f: &mut impl FnMut(&syn::Ident)) {
+        match t {
+            syn::Type::Paren(t) => visit_type_idents(&t.elem, f),
+            syn::Type::Path(p) => {
+                if let Some(qs) = &p.qself {
+                    visit_type_idents(&qs.ty, f);
+                }
+
+                visit_path_idents(&p.path, f)
+            }
+            syn::Type::Array(a) => visit_type_idents(&a.elem, f),
+            syn::Type::Group(g) => visit_type_idents(&g.elem, f),
+            syn::Type::Reference(r) => visit_type_idents(&r.elem, f),
+            syn::Type::Slice(s) => visit_type_idents(&s.elem, f),
+            syn::Type::Tuple(t) => {
+                for t in &t.elems {
+                    visit_type_idents(t, f);
+                }
+            }
+            _ => (),
+        }
+    }
+
+    fn check_new_dependent(
+        signature: &syn::Signature,
+        relevant: &mut HashMap<syn::Ident, bool>,
+        bound: &syn::TraitBound,
+    ) {
+        let mut new_idents = Vec::new();
+        visit_path_idents(&bound.path, &mut |ident| {
+            if let Some(r) = relevant.get_mut(ident) {
+                if *r == false {
+                    *r = true;
+                    new_idents.push(ident.clone());
+                    // Find the new bound
+                    check_new_dependent(signature, relevant, bound);
+                }
+            }
+        });
+    }
+
+    let mut relevant: HashMap<syn::Ident, bool> = signature
+        .generics
+        .type_params()
+        .map(|t| (t.ident.clone(), false))
+        .collect();
+
+    // Maps type ident to Vec<Bounds> that mention this type.
+    // So we know if we need the type, we probably need to include the bound?
+    let mut bounds = HashMap::new();
+
+    for bound in signature
+        .generics
+        .type_params()
+        .flat_map(|t| &t.bounds)
+        .filter_map(|bounds| match bounds {
+            syn::TypeParamBound::Trait(bound) => Some(bound),
+            _ => None,
+        })
+    {
+        // Attach this bound to all relevant types
+        visit_path_idents(&bound.path, &mut |ident| {
+            // Register this bound as relevant to this event.
+            bounds
+                .entry(ident.clone())
+                .or_insert_with(Vec::new)
+                .push(bound);
+        });
+    }
+
+    if let Some(ref where_clause) = signature.generics.where_clause {
+        for pred in &where_clause.predicates {
+            match pred {
+                syn::WherePredicate::Type(t) => for bound in &t.bounds {},
+                syn::WherePredicate::Lifetime(l) => (),
+                syn::WherePredicate::Eq(e) => (),
+            }
+        }
+    }
+
+    check_new_dependent(signature, &mut relevant, bound);
+
+    let generics: Vec<_> = signature
+        .generics
+        .type_params()
+        .filter(|t| relevant[&t.ident])
+        .collect();
+
+    quote! {
+        #(#generics),*
+    }
+}
+
 /// Returns (Bounds, argument name, Optional<type name>)
 ///
 /// The type name is not available if the arg is impl Fn()
@@ -261,7 +390,13 @@ pub fn callback_helpers(
     let maker_ident = syn::Ident::new(&maker_name, Span::call_site());
 
     // TODO: There may be extra generics for F, such as a generic argument.
+    // So find all the generics that are referenced by F
+    let maker_generics = find_dependent_generics(&input.sig, &fn_bound);
 
+    // And all bounds that apply to these generics
+    let maker_bounds = quote!(); // find_dependent_bounds(&maker_generics);
+
+    // And keep them in the maker.
     let maker_doc = format!(
         r#"Helper method to store a callback of the correct type for [`Self::{fn_ident}`].
 
@@ -269,7 +404,11 @@ This is mostly useful when using this view in a template."#
     );
     let maker_fn = quote! {
         #[doc = #maker_doc]
-        pub fn #maker_ident<F: #fn_bound + 'static> ( #cb_arg_name: F ) -> #dyn_type {
+        pub fn #maker_ident
+            <F: #fn_bound + 'static, #maker_generics>
+            ( #cb_arg_name: F ) -> #dyn_type
+            where #maker_bounds
+        {
             ::std::rc::Rc::new(#cb_arg_name)
         }
     };

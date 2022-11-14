@@ -267,6 +267,8 @@ impl View for SliderView {
 //     max_value: 10
 //     on_change: $on_change
 // ```
+// TODO: Rename the view itself as Slider to match the config?
+// Or vice versa?
 crate::recipe!(Slider, |config, context| {
     let orientation = context.resolve(&config["orientation"])?;
     let max_value = context.resolve(&config["max_value"])?;
