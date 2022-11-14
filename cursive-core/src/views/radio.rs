@@ -253,7 +253,7 @@ crate::recipe!(RadioButton, |config, context| {
             config: &Config,
             context: &Context,
         ) -> Result<Self, Error> {
-            let name: String = context.resolve(&config)?;
+            let name: String = context.resolve(config)?;
 
             let group =
                 std::thread::LocalKey::with(&GLOBAL_GROUPS, |groups| {

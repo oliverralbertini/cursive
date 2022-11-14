@@ -152,6 +152,7 @@ impl ProgressBar {
     ///
     /// The given function will be called with `(value, (min, max))`.
     /// Its output will be used as the label to print inside the progress bar.
+    #[crate::callback_helpers]
     pub fn set_label<F: Fn(usize, (usize, usize)) -> String + 'static>(
         &mut self,
         label_maker: F,
@@ -314,4 +315,24 @@ impl View for ProgressBar {
     }
 }
 
-crate::recipe!(ProgressBar, |config, context| {});
+crate::recipe!(ProgressBar, |config, context| {
+    let mut bar = ProgressBar::new();
+
+    if let Some(min) = context.resolve(&config["min"])? {
+        bar.set_min(min);
+    }
+    if let Some(max) = context.resolve(&config["max"])? {
+        bar.set_max(max);
+    }
+    if let Some(value) = context.resolve(&config["value"])? {
+        bar.set_value(value);
+    }
+    if let Some(color) = context.resolve(&config["color"])? {
+        bar.set_color::<ColorType>(color);
+    }
+    if let Some(cb) = context.resolve(&config["label"])? {
+        bar.set_label_cb(cb);
+    }
+
+    Ok(bar)
+});

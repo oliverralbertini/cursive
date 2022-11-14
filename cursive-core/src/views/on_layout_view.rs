@@ -8,7 +8,7 @@ pub struct OnLayoutView<V> {
     on_layout: Box<Callback<V>>,
 }
 
-impl<V> OnLayoutView<V> {
+impl<V: 'static> OnLayoutView<V> {
     /// Wraps a view in an `OnLayoutView`.
     ///
     /// Will run the given closure for layout _instead_ of the one from `view`.

@@ -56,7 +56,7 @@ fn find_dependent_generics(
                         visit_type_idents(t, f);
                     }
                     if let syn::ReturnType::Type(_, t) = &arguments.output {
-                        visit_type_idents(&t, f);
+                        visit_type_idents(t, f);
                     }
                 }
                 _ => (),
@@ -88,18 +88,18 @@ fn find_dependent_generics(
     }
 
     fn check_new_dependent(
-        signature: &syn::Signature,
+        // signature: &syn::Signature,
         relevant: &mut HashMap<syn::Ident, bool>,
         bound: &syn::TraitBound,
     ) {
         let mut new_idents = Vec::new();
         visit_path_idents(&bound.path, &mut |ident| {
             if let Some(r) = relevant.get_mut(ident) {
-                if *r == false {
+                if !(*r) {
                     *r = true;
                     new_idents.push(ident.clone());
                     // Find the new bound
-                    check_new_dependent(signature, relevant, bound);
+                    check_new_dependent(/* signature, */ relevant, bound);
                 }
             }
         });
@@ -115,6 +115,7 @@ fn find_dependent_generics(
     // So we know if we need the type, we probably need to include the bound?
     let mut bounds = HashMap::new();
 
+    // Look for links in the generics from the function definition.
     for bound in signature
         .generics
         .type_params()
@@ -134,17 +135,18 @@ fn find_dependent_generics(
         });
     }
 
-    if let Some(ref where_clause) = signature.generics.where_clause {
-        for pred in &where_clause.predicates {
-            match pred {
-                syn::WherePredicate::Type(t) => for bound in &t.bounds {},
-                syn::WherePredicate::Lifetime(l) => (),
-                syn::WherePredicate::Eq(e) => (),
-            }
-        }
-    }
+    // Look for links in the where clause.
+    // if let Some(ref where_clause) = signature.generics.where_clause {
+    //     for pred in &where_clause.predicates {
+    //         match pred {
+    //             syn::WherePredicate::Type(t) => for bound in &t.bounds {},
+    //             syn::WherePredicate::Lifetime(l) => (),
+    //             syn::WherePredicate::Eq(e) => (),
+    //         }
+    //     }
+    // }
 
-    check_new_dependent(signature, &mut relevant, bound);
+    check_new_dependent(/* signature, */ &mut relevant, bound);
 
     let generics: Vec<_> = signature
         .generics
