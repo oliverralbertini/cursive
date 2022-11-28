@@ -74,13 +74,14 @@ fn on_edit_callback(siv: &mut cursive::Cursive, text: &str, cursor: usize) {
 //              * Go full-on callback visitors instead, let the context resolve the thing, and call
 //                  the appropriate visitor. Ugh.
 //      * Almost every time we want to check a sub-object, we actually want to resolve it.
-// * Write more recipes
+// * Write more recipes (almost done?)
 // * Automate `if let Some(v) = context.resolve(&config[field_name])? { foo.set_v(v); }`
-//      * Need an automatic "try_set_foo(&mut self, config: &Config)" function
+//      * Need an automatic "try_set_foo(&mut self, &Config, &Context)" function
 //      * Need to register all such fields for a struct and call them all in turn?
 //          * Might be from more than just one impl block... :(
 //          * A derive on the type itself + proc macro per function?
 //          * An attribute on the impl block? Each block?
+//      * Could be done with inventory? (Post-macro?)
 // * Simplify a bit Rc everywhere
 //      * Especially for places where we already need a Rc<callback> anyway, maybe don't
 //      double-wrap it?
