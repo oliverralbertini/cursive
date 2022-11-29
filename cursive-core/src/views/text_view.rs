@@ -447,6 +447,18 @@ impl View for TextView {
     }
 }
 
+#[crate::recipe(from TextView::empty)]
+enum Recipe {
+    Inline(#[recipe(set_content)] String),
+
+    Object {
+        #[recipe(set_content)]
+        content: String,
+
+        on_view: AutoCb,
+    },
+}
+
 crate::recipe!(TextView, |config, context| {
     // Two ways to make a textview:
     // * Inline content
