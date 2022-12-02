@@ -76,6 +76,10 @@ required-features = ["toml"]
 name = "ansi"
 required-features = ["ansi"]
 
+[[example]]
+name = "builder"
+required-features = ["builder"]
+
 [dev-dependencies]
 rand = "0.8"
 atty = "0.2"

@@ -883,6 +883,10 @@ impl Context {
             .map(|recipe| recipe.as_tuple())
             .collect();
 
+        // for (recipe, _) in &recipes {
+        //     eprintln!("{recipe:?}");
+        // }
+
         let wrappers = inventory::iter::<WrapperRecipe>()
             .map(|recipe| recipe.as_tuple())
             .collect();
@@ -1431,7 +1435,7 @@ inventory::collect!(WrapperRecipe);
 
 #[macro_export]
 /// Define a recipe to build this view from a config file.
-macro_rules! recipe {
+macro_rules! raw_recipe {
     ($name:ident from $config_builder:expr) => {
         #[cfg(feature = "builder")]
         $crate::submit! {
@@ -1493,7 +1497,7 @@ macro_rules! var_recipe {
 }
 
 // Simple recipe allowing to use variables as views, and attach a `with` clause.
-recipe!(View, |config, context| {
+raw_recipe!(View, |config, context| {
     let view: BoxedView = context.resolve(&config["view"])?;
     Ok(view)
 });

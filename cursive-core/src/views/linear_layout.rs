@@ -773,7 +773,23 @@ impl View for LinearLayout {
     }
 }
 
-crate::recipe!(LinearLayout, |config, context| {
+/*
+#[cursive_macros::recipe(LinearLayout::new(orientation))]
+struct Recipe {
+    orientation: direction::Orientation,
+
+    #[recipe(foreach=add_child)]
+    children: Vec<crate::views::BoxedView>,
+
+    #[recipe(
+        set_focus_index,
+        on_err="LinearLayout.focus cannot be larger than the number of views.",
+    )]
+    focus: Option<usize>,
+}
+*/
+
+crate::raw_recipe!(LinearLayout, |config, context| {
     let orientation = match config.get("orientation") {
         Some(orientation) => context.resolve(orientation)?,
         None => direction::Orientation::Vertical,

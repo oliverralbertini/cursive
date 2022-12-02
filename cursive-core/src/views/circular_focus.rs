@@ -125,7 +125,24 @@ impl<T: View> CircularFocus<T> {
         self.wrap_left_right = wrap_left_right;
     }
 
+    fn set_wrap(&mut self, wrap_kind: WrapKind, wrap: bool) {
+        match wrap_kind {
+            WrapKind::Tab => self.set_wrap_tab(wrap),
+            WrapKind::Arrows => self.set_wrap_arrows(wrap),
+            WrapKind::LeftRight => self.set_wrap_left_right(wrap),
+            WrapKind::UpDown => self.set_wrap_up_down(wrap),
+        }
+    }
+
     inner_getters!(self.view: T);
+}
+
+#[derive(Hash)]
+enum WrapKind {
+    Tab,
+    Arrows,
+    LeftRight,
+    UpDown,
 }
 
 impl<T: View> ViewWrapper for CircularFocus<T> {
@@ -183,8 +200,31 @@ impl<T: View> ViewWrapper for CircularFocus<T> {
         }
     }
 }
+/*
 
-crate::recipe!(with circular_focus, |config, context| {
+#[crate::recipe(with = "circular_focus", CircularFocus::new)]
+enum Recipe {
+    #[recipe(
+        set_wrap(wrap_kind, true),
+        from=String,
+    )]
+    String(WrapKind),
+
+    #[recipe(
+        foreach=set_wrap(wrap_kind, true),
+        from=Array,
+    )]
+    Array(Vec<WrapKind>),
+
+    #[recipe(
+        foreach=set_wrap,
+        from=Object
+    )]
+    Object(HashMap<WrapKind, bool>),
+}
+*/
+
+crate::raw_recipe!(with circular_focus, |config, context| {
     use crate::builder::{Config, Error};
 
     // TODO: enable variable resolution across types

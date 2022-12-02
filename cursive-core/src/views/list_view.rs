@@ -1,3 +1,4 @@
+use crate::builder::{Config, Context, Error, FromConfig};
 use crate::{
     direction,
     event::{AnyCb, Callback, Event, EventResult, Key},
@@ -90,6 +91,12 @@ impl ListView {
     /// Panics if `id >= self.len()`.
     pub fn row_mut(&mut self, id: usize) -> &mut ListChild {
         &mut self.children[id]
+    }
+
+    /// Setter for the recipe.
+    fn set_children(&mut self, children: Vec<ListChild>) {
+        self.children_heights.resize(children.len(), 0);
+        self.children = children;
     }
 
     /// Adds a view to the end of the list.
@@ -512,40 +519,21 @@ impl View for ListView {
     }
 }
 
-// TODO: crate recipe?
-// ```yaml
-// - ListView:
-//     children:
-//
-//       - foo: TextView
-//       - $label: TextView
-// ```
-crate::recipe!(ListView, |config, context| {
-    use crate::builder::{Config, Context, Error, FromConfig};
-
-    impl FromConfig for ListChild {
-        fn from_config(
-            config: &Config,
-            context: &Context,
-        ) -> Result<Self, Error> {
-            if config.as_str() == Some("delimiter") {
-                Ok(ListChild::Delimiter)
-            } else {
-                let view = context.resolve(&config["view"])?;
-                let label = context.resolve(&config["label"])?;
-                Ok(ListChild::Row(label, view))
-            }
+impl FromConfig for ListChild {
+    fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
+        if config.as_str() == Some("delimiter") {
+            Ok(ListChild::Delimiter)
+        } else {
+            let view = context.resolve(&config["view"])?;
+            let label = context.resolve(&config["label"])?;
+            Ok(ListChild::Row(label, view))
         }
     }
+}
 
-    let mut view = ListView::new();
+#[cursive_macros::recipe(ListView::new())]
+struct Recipe {
+    children: Vec<ListChild>,
 
-    view.children = context.resolve(&config["children"])?;
-    view.children_heights.resize(view.children.len(), 0);
-
-    if let Some(on_select) = context.resolve(&config["on_select"])? {
-        view.set_on_select_cb(on_select);
-    }
-
-    Ok(view)
-});
+    on_select: Option<_>,
+}

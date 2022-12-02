@@ -183,7 +183,18 @@ impl View for Checkbox {
     }
 }
 
-crate::recipe!(Checkbox, |config, context| {
+/*
+
+#[crate::recipe(Checkbox::new())]
+struct Recipe {
+    on_change: Option<Cb>,
+
+    checked: Option<bool>,
+    enabled: Option<bool>,
+}
+*/
+
+crate::raw_recipe!(Checkbox, |config, context| {
     let mut checkbox = Checkbox::new();
 
     if let Some(on_change) = config.get("on_change") {

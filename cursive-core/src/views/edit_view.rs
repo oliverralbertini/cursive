@@ -713,7 +713,17 @@ impl View for EditView {
     }
 }
 
-crate::recipe!(EditView, |config, context| {
+#[cursive_macros::recipe(EditView::new())]
+struct Recipe {
+    content: Option<String>,
+
+    on_edit: Option<_>,
+    on_submit: Option<_>,
+}
+
+// The above recipe would expand to:
+/*
+crate::raw_recipe!(EditView, |config, context| {
     let mut edit_view = EditView::new();
 
     if let Some(content) = config.get("content") {
@@ -730,6 +740,7 @@ crate::recipe!(EditView, |config, context| {
 
     Ok(edit_view)
 });
+*/
 
 crate::var_recipe!("EditView.with_content", |config, context| {
     let name: String = context.resolve(&config["name"])?;

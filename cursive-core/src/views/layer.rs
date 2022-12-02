@@ -52,7 +52,7 @@ impl<T: View> ViewWrapper for Layer<T> {
     }
 }
 
-crate::recipe!(with layer, |config, context| {
+crate::raw_recipe!(with layer, |config, context| {
     let color = match config {
         crate::builder::Config::Null => None,
         config => Some(context.resolve(config)?),

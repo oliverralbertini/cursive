@@ -447,29 +447,16 @@ impl View for TextView {
     }
 }
 
-#[crate::recipe(from TextView::empty)]
+// Need: a name, a base (potential dependencies), setters
+#[cursive_macros::recipe(TextView::empty())]
 enum Recipe {
-    Inline(#[recipe(set_content)] String),
+    // We accept `TextView` without even a body
+    Empty,
 
-    Object {
-        #[recipe(set_content)]
-        content: String,
+    // Inline content
+    Content(String),
 
-        on_view: AutoCb,
-    },
+    // Full object with optional content field
+    // This is also used to add a `with` block
+    Object { content: Option<String> },
 }
-
-crate::recipe!(TextView, |config, context| {
-    // Two ways to make a textview:
-    // * Inline content
-    // * Object with a `content` field.
-    let content = match config {
-        crate::builder::Config::String(_) => context.resolve(config)?,
-        crate::builder::Config::Object(_) => {
-            context.resolve_or(&config["content"], String::new())?
-        }
-        _ => String::new(),
-    };
-
-    Ok(TextView::new(content))
-});

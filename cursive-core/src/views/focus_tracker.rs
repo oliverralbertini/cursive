@@ -82,7 +82,7 @@ impl<T: View> ViewWrapper for FocusTracker<T> {
     }
 }
 
-crate::recipe!(with focus_tracker, |config, context| {
+crate::raw_recipe!(with focus_tracker, |config, context| {
     let on_focus = context.resolve(&config["on_focus"])?;
     let on_focus_lost = context.resolve(&config["on_focus_lost"])?;
 

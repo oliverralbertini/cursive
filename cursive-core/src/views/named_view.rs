@@ -118,13 +118,21 @@ impl<T: View + 'static> ViewWrapper for NamedView<T> {
     }
 }
 
-crate::recipe!(with name, |config, context| {
+#[cursive_macros::recipe(NamedView::new(name, view))]
+struct Recipe {
+    name: String,
+    view: crate::views::BoxedView,
+}
+
+crate::raw_recipe!(with name, |config, context| {
     let name: String = context.resolve(config)?;
     Ok(|view| NamedView::new(name, view))
 });
 
-crate::recipe!(NamedView, |config, context| {
+/*
+crate::raw_recipe!(NamedView, |config, context| {
     let name: String = context.resolve(&config["name"])?;
     let view: crate::views::BoxedView = context.resolve(&config["view"])?;
     Ok(NamedView::new(name, view))
 });
+*/

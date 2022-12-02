@@ -115,4 +115,4 @@ impl<T: View> ViewWrapper for ShadowView<T> {
     }
 }
 
-crate::recipe!(with shadow, |_, _| Ok(ShadowView::new));
+crate::raw_recipe!(with shadow, |_, _| Ok(ShadowView::new));

@@ -315,24 +315,11 @@ impl View for ProgressBar {
     }
 }
 
-crate::recipe!(ProgressBar, |config, context| {
-    let mut bar = ProgressBar::new();
-
-    if let Some(min) = context.resolve(&config["min"])? {
-        bar.set_min(min);
-    }
-    if let Some(max) = context.resolve(&config["max"])? {
-        bar.set_max(max);
-    }
-    if let Some(value) = context.resolve(&config["value"])? {
-        bar.set_value(value);
-    }
-    if let Some(color) = context.resolve(&config["color"])? {
-        bar.set_color::<ColorType>(color);
-    }
-    if let Some(cb) = context.resolve(&config["label"])? {
-        bar.set_label_cb(cb);
-    }
-
-    Ok(bar)
-});
+#[cursive_macros::recipe(ProgressBar::new())]
+struct Recipe {
+    min: Option<usize>,
+    max: Option<usize>,
+    value: Option<usize>,
+    color: Option<ColorType>,
+    label: Option<_>,
+}

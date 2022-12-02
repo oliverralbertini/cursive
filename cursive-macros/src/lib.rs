@@ -84,6 +84,6 @@ pub fn callback_helpers(
 
 /// Defines a recipe for creating a view from config.
 #[proc_macro_attribute]
-pub fn recipe(_attrs: TokenStream, item: TokenStream) -> TokenStream {
-    recipe::recipe(item)
+pub fn recipe(attrs: TokenStream, item: TokenStream) -> TokenStream {
+    recipe::recipe(attrs, item)
 }

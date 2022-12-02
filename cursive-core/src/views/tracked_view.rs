@@ -39,4 +39,4 @@ impl<T: View> ViewWrapper for TrackedView<T> {
     }
 }
 
-crate::recipe!(with tracked, |_, _| Ok(TrackedView::new));
+crate::raw_recipe!(with tracked, |_, _| Ok(TrackedView::new));

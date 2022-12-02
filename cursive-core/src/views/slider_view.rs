@@ -261,27 +261,12 @@ impl View for SliderView {
     }
 }
 
-// ```yaml
-// - Slider:
-//     orientation: horizontal
-//     max_value: 10
-//     on_change: $on_change
-// ```
 // TODO: Rename the view itself as Slider to match the config?
-// Or vice versa?
-crate::recipe!(Slider, |config, context| {
-    let orientation = context.resolve(&config["orientation"])?;
-    let max_value = context.resolve(&config["max_value"])?;
+#[cursive_macros::recipe(SliderView::new(orientation, max_value))]
+struct Recipe {
+    orientation: Orientation,
+    max_value: usize,
 
-    let mut slider = SliderView::new(orientation, max_value);
-
-    if let Some(callback) = context.resolve(&config["on_change"])? {
-        slider.set_on_change_cb(callback);
-    }
-
-    if let Some(callback) = context.resolve(&config["on_enter"])? {
-        slider.set_on_enter_cb(callback);
-    }
-
-    Ok(slider)
-});
+    on_change: Option<_>,
+    on_enter: Option<_>,
+}

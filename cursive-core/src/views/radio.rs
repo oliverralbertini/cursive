@@ -1,3 +1,4 @@
+use crate::builder::{Config, Context, Error, FromConfig};
 use crate::{
     direction::Direction,
     event::{Event, EventResult, Key, MouseButton, MouseEvent},
@@ -196,6 +197,29 @@ impl<T: 'static> RadioButton<T> {
             Vec2::new(3 + 1 + self.label.len(), 1)
         }
     }
+
+    /// Build a button from a radio group.
+    ///
+    /// Equivalent to `group.button(value, label)`
+    pub fn from_group<S: Into<String>>(
+        group: &mut RadioGroup<T>,
+        value: T,
+        label: S,
+    ) -> Self {
+        group.button(value, label)
+    }
+}
+
+impl RadioButton<String> {
+    /// Build a button from a radio group.
+    ///
+    /// Equivalent to `group.button_str(label)`
+    pub fn from_group_str<S: Into<String>>(
+        group: &mut RadioGroup<String>,
+        label: S,
+    ) -> Self {
+        group.button_str(label)
+    }
 }
 
 impl<T: 'static> View for RadioButton<T> {
@@ -245,37 +269,24 @@ thread_local! {
     pub static GLOBAL_GROUPS: RefCell<HashMap<String, RadioGroup<String>>> = RefCell::new(HashMap::new());
 }
 
-crate::recipe!(RadioButton, |config, context| {
-    use crate::builder::{Config, Context, Error, FromConfig};
+impl FromConfig for RadioGroup<String> {
+    fn from_config(config: &Config, context: &Context) -> Result<Self, Error> {
+        let name: String = context.resolve(config)?;
 
-    impl FromConfig for RadioGroup<String> {
-        fn from_config(
-            config: &Config,
-            context: &Context,
-        ) -> Result<Self, Error> {
-            let name: String = context.resolve(config)?;
+        let group = std::thread::LocalKey::with(&GLOBAL_GROUPS, |groups| {
+            groups
+                .borrow_mut()
+                .entry(name)
+                .or_insert_with(RadioGroup::new)
+                .clone()
+        });
 
-            let group =
-                std::thread::LocalKey::with(&GLOBAL_GROUPS, |groups| {
-                    groups
-                        .borrow_mut()
-                        .entry(name)
-                        .or_insert_with(RadioGroup::new)
-                        .clone()
-                });
-
-            Ok(group)
-        }
+        Ok(group)
     }
+}
 
-    // TODO: Let a template generate a unique name and use it as radio group.
-
-    // Use a thread-local pool of named groups.
-    // We resolve it, so it would also work if user store a group and use it as variable.
-    let mut group: RadioGroup<String> = context.resolve(&config["group"])?;
-    let label: String = context.resolve(&config["label"])?;
-
-    let button = group.button_str(label);
-
-    Ok(button)
-});
+#[cursive_macros::recipe(RadioButton::from_group_str(&mut group, label))]
+struct Recipe {
+    group: RadioGroup<String>,
+    label: String,
+}

@@ -1049,26 +1049,15 @@ impl<T> Item<T> {
     }
 }
 
-crate::recipe!(SelectView, |config, context| {
-    let mut select = SelectView::<String>::new();
+#[cursive_macros::recipe(SelectView::<String>::new())]
+struct Recipe {
+    autojump: Option<bool>,
+    popup: Option<bool>,
+    on_select: Option<_>,
 
-    if let Some(autojump) = context.resolve(&config["autojump"])? {
-        select.set_autojump(autojump);
-    }
-
-    if let Some(popup) = context.resolve(&config["popup"])? {
-        select.set_popup(popup);
-    }
-
-    if let Some(callback) = context.resolve(&config["on_select"])? {
-        select.set_on_select_cb(callback);
-    }
-
-    let items: Vec<String> = context.resolve(&config["items"])?;
-    select.add_all_str(items);
-
-    Ok(select)
-});
+    #[recipe(foreach(add_item_str))]
+    items: Vec<String>,
+}
 
 #[cfg(test)]
 mod tests {

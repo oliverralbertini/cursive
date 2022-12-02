@@ -81,14 +81,13 @@ impl<V: View> ViewWrapper for PaddedView<V> {
     }
 }
 
-crate::recipe!(PaddedView, |config, context| {
-    let margins = context.resolve(&config["margins"])?;
-    let child = context.build(&config["child"])?;
+#[cursive_macros::recipe(PaddedView::new(margins, child))]
+struct Recipe {
+    margins: Margins,
+    child: crate::views::BoxedView,
+}
 
-    Ok(PaddedView::new(margins, child))
-});
-
-crate::recipe!(with padding, |config, context| {
+crate::raw_recipe!(with padding, |config, context| {
     let margins = context.resolve(config)?;
     Ok(move |view| PaddedView::new(margins, view))
 });

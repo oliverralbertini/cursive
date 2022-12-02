@@ -24,6 +24,9 @@ Dialog:
                 label: "Please write:"
                 on_edit: $on_edit
                 name: edit
+        - Button:
+            label: Randomize
+            callback: $randomize
         # This is another one of our custom views
         - VSpace: 2
         # Give the TextView a name so we can update it

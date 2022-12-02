@@ -812,7 +812,7 @@ mod tests {
     }
 }
 
-crate::recipe!(StackView, |config, context| {
+crate::raw_recipe!(StackView, |config, context| {
     use crate::builder::{Config, Context, Error, FromConfig};
 
     impl FromConfig for Placement {

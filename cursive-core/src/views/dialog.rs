@@ -943,7 +943,7 @@ impl View for Dialog {
     }
 }
 
-crate::recipe!(Dialog, |config, context| {
+crate::raw_recipe!(Dialog, |config, context| {
     use crate::builder::{Config, Context, Error, FromConfig};
     let mut dialog = Dialog::new();
 
@@ -988,6 +988,11 @@ crate::recipe!(Dialog, |config, context| {
 
     Ok(dialog)
 });
+
+/*
+#[crate::var_recipe(Dialog::info())]
+struct Info(String);
+*/
 
 // We can define some variables
 crate::var_recipe!("Dialog.info", |config, context| {

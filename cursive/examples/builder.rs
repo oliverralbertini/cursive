@@ -1,17 +1,17 @@
-use cursive::views::{EditView, TextView};
+use cursive::views::{Button, EditView, TextView};
 
 // This is how we can define some global recipes.
 // Here, we define a recipe from a template.
-cursive::recipe!(LabeledField from {
+cursive::raw_recipe!(LabeledField from {
     serde_yaml::from_str(include_str!("label-view.yaml")).unwrap()
 });
 
-cursive::recipe!(VSpace from {
+cursive::raw_recipe!(VSpace from {
     serde_yaml::from_str(include_str!("vspace.yaml")).unwrap()
 });
 
 // We can also define recipe that build arbitrary views.
-cursive::recipe!(Titled, |config, context| {
+cursive::raw_recipe!(Titled, |config, context| {
     use cursive::views::Panel;
 
     // Fetch a string from the config
@@ -35,6 +35,17 @@ fn main() {
     // In our case, it's a title, and an on_edit callback.
     context.store("title", String::from("Config-driven layout example"));
     context.store("on_edit", EditView::on_edit_cb(on_edit_callback));
+    context.store(
+        "randomize",
+        Button::new_cb(|s| {
+            let cb = s
+                .call_on_name("edit", |e: &mut EditView| {
+                    e.set_content("Not so random!")
+                })
+                .unwrap();
+            cb(s);
+        }),
+    );
 
     // Load the template - here it's a yaml file.
     const CONFIG: &str = include_str!("builder.yaml");
